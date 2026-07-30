@@ -13,7 +13,7 @@ export function useNoteSharing() {
     try {
       const dataUrl = await toPng(el, {
         pixelRatio: 2,
-        backgroundColor: "#20232c",
+        backgroundColor: "transparent",
         cacheBust: true,
       });
       const link = document.createElement("a");
