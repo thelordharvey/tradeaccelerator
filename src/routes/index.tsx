@@ -19,17 +19,17 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Edge Log — Trading Notes You Can Share" },
+      { title: "Trade Accelerator" },
       {
         name: "description",
         content:
           "Write down the trades you take, what you did badly, what you can do better, and what works in which conditions. Share notes or save them as photos.",
       },
-      { property: "og:title", content: "Edge Log — Trading Notes You Can Share" },
+      { property: "og:title", content: "Trade Accelerator" },
       {
         property: "og:description",
         content:
-          "A simple place to log trades, mistakes, improvements, and the setups that work in specific market conditions.",
+          "Write down the trades you take, what you did badly, what you can do better, and what works in which conditions. Share notes or save them as photos.",
       },
     ],
   }),
