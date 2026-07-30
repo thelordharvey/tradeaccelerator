@@ -13,11 +13,10 @@ export const NoteCard = forwardRef<HTMLDivElement, { note: TradeNote }>(
     const filled = FIELDS.filter((f) => note[f.key].trim().length > 0);
 
     return (
-      <div
-        ref={ref}
-        className="surface-card overflow-hidden"
-        style={{ backgroundColor: "oklch(0.2 0.014 260)" }}
-      >
+    <div
+      ref={ref}
+      className="glass-card overflow-hidden"
+    >
         <div className="edge-accent h-1 w-full" />
         <div className="p-6 sm:p-8">
           <div className="flex items-start justify-between gap-4">
