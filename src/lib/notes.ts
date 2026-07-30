@@ -6,6 +6,7 @@ export type TradeNote = {
   bad: string;
   better: string;
   works: string;
+  images: string[];
 };
 
 const KEY = "trade-notes-v1";
@@ -19,6 +20,7 @@ export function emptyNote(): TradeNote {
     bad: "",
     better: "",
     works: "",
+    images: [],
   };
 }
 
@@ -28,7 +30,8 @@ export function loadNotes(): TradeNote[] {
     const raw = window.localStorage.getItem(KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as TradeNote[];
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((n) => ({ ...n, images: n.images ?? [] }));
   } catch {
     return [];
   }
@@ -69,6 +72,7 @@ export function decodeNote(code: string): TradeNote | null {
       bad: raw.b ?? "",
       better: raw.g ?? "",
       works: raw.w ?? "",
+      images: Array.isArray(raw.i) ? raw.i : [],
     };
   } catch {
     return null;
