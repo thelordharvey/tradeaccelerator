@@ -11,6 +11,7 @@ const fmt = (ts: number) =>
 export const NoteCard = forwardRef<HTMLDivElement, { note: TradeNote }>(
   function NoteCard({ note }, ref) {
     const filled = FIELDS.filter((f) => note[f.key].trim().length > 0);
+    const images = note.images ?? [];
 
     return (
     <div
@@ -51,6 +52,21 @@ export const NoteCard = forwardRef<HTMLDivElement, { note: TradeNote }>(
               ))
             )}
           </div>
+
+          {images.length > 0 && (
+            <div
+              className={`mt-6 grid gap-3 ${images.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}
+            >
+              {images.map((src, i) => (
+                <img
+                  key={i}
+                  src={src}
+                  alt={`Chart attached to ${note.title.trim() || "trade note"} (${i + 1})`}
+                  className="w-full rounded-md border border-border object-cover"
+                />
+              ))}
+            </div>
+          )}
 
           <p className="mt-8 text-[11px] uppercase tracking-[0.25em] text-muted-foreground">
             Edge Log · trading notes
