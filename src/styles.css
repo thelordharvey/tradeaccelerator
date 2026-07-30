@@ -171,13 +171,13 @@
 
 @utility glass-card {
   background:
-    linear-gradient(145deg, color-mix(in oklch, var(--foreground) 12%, transparent) 0%, transparent 45%),
-    color-mix(in oklch, var(--card) 20%, transparent);
-  backdrop-filter: blur(36px) saturate(160%);
-  border: 1px solid color-mix(in oklch, var(--foreground) 20%, transparent);
+    linear-gradient(145deg, color-mix(in oklch, var(--foreground) 16%, transparent) 0%, transparent 50%),
+    color-mix(in oklch, var(--card) 15%, transparent);
+  backdrop-filter: blur(40px) saturate(170%);
+  border: 1px solid color-mix(in oklch, var(--foreground) 24%, transparent);
   box-shadow:
     0 1px 1px 0 color-mix(in oklch, var(--foreground) 12%, transparent) inset,
-    0 24px 60px -16px oklch(0 0 0 / 45%);
+    0 28px 70px -18px oklch(0 0 0 / 50%);
   border-radius: var(--radius-lg);
 }
 
