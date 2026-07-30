@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,8 @@ import {
   saveNotes,
   type TradeNote,
 } from "@/lib/notes";
+import { fileToCompressedDataUrl } from "@/lib/images";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -39,6 +41,22 @@ function Index() {
   const [draft, setDraft] = useState<TradeNote>(() => emptyNote());
   const [hydrated, setHydrated] = useState(false);
   const { cardRef, savePhoto, shareLink, sharePhoto } = useNoteSharing();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const addImages = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    try {
+      const encoded = await Promise.all(
+        Array.from(files)
+          .filter((f) => f.type.startsWith("image/"))
+          .slice(0, 6)
+          .map((f) => fileToCompressedDataUrl(f)),
+      );
+      setDraft((d) => ({ ...d, images: [...(d.images ?? []), ...encoded] }));
+    } catch {
+      toast.error("Couldn't read that image");
+    }
+  };
 
   useEffect(() => {
     setNotes(loadNotes());
@@ -56,7 +74,8 @@ function Index() {
 
   const hasContent =
     draft.title.trim().length > 0 ||
-    FIELDS.some((f) => draft[f.key].trim().length > 0);
+    FIELDS.some((f) => draft[f.key].trim().length > 0) ||
+    (draft.images ?? []).length > 0;
 
   const commit = () => {
     if (!hasContent) return;
@@ -117,6 +136,54 @@ function Index() {
                   />
                 </div>
               ))}
+            </div>
+
+            <div className="mt-6">
+              <label className="font-display text-xs uppercase tracking-[0.15em] text-primary">
+                Pictures
+              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  void addImages(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+              <div className="mt-2 flex flex-wrap gap-3">
+                {(draft.images ?? []).map((src, i) => (
+                  <div key={i} className="relative">
+                    <img
+                      src={src}
+                      alt={`Attachment ${i + 1}`}
+                      className="h-20 w-20 rounded-md border border-border object-cover"
+                    />
+                    <button
+                      type="button"
+                      aria-label={`Remove picture ${i + 1}`}
+                      onClick={() =>
+                        setDraft((d) => ({
+                          ...d,
+                          images: (d.images ?? []).filter((_, x) => x !== i),
+                        }))
+                      }
+                      className="absolute -right-2 -top-2 h-6 w-6 rounded-full border border-border bg-secondary text-xs text-foreground"
+                    >
+                      x
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="h-20 w-20 rounded-md border border-dashed border-border text-xs text-muted-foreground hover:border-primary hover:text-primary"
+                >
+                  + Add
+                </button>
+              </div>
             </div>
 
             <div className="mt-6 flex flex-wrap gap-2">
