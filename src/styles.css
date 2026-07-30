@@ -169,6 +169,14 @@
   border-radius: var(--radius-lg);
 }
 
+@utility glass-card {
+  background: color-mix(in oklch, var(--card) 35%, transparent);
+  backdrop-filter: blur(24px) saturate(130%);
+  border: 1px solid color-mix(in oklch, var(--foreground) 10%, transparent);
+  box-shadow: var(--shadow-card);
+  border-radius: var(--radius-lg);
+}
+
 @utility edge-accent {
   background-image: var(--gradient-edge);
 }
