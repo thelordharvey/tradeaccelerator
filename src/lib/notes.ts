@@ -37,9 +37,26 @@ export function loadNotes(): TradeNote[] {
   }
 }
 
-export function saveNotes(notes: TradeNote[]) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(KEY, JSON.stringify(notes));
+// Persists notes to localStorage. Returns false if storage is full so the
+// caller can warn instead of silently losing a note.
+export function saveNotes(notes: TradeNote[]): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    window.localStorage.setItem(KEY, JSON.stringify(notes));
+    return true;
+  } catch {
+    // Most likely quota exceeded (images are stored inline as data URLs).
+    // Retry with images stripped from the oldest notes until it fits.
+    const trimmed = notes.map((n, i) =>
+      i === 0 ? n : { ...n, images: [] },
+    );
+    try {
+      window.localStorage.setItem(KEY, JSON.stringify(trimmed));
+    } catch {
+      return false;
+    }
+    return false;
+  }
 }
 
 // URL-safe base64 encoding of a note so it can be shared as a link.
