@@ -13,7 +13,7 @@ export function useNoteSharing() {
     try {
       const dataUrl = await toPng(el, {
         pixelRatio: 2,
-        backgroundColor: "transparent",
+        backgroundColor: "#22242b",
         cacheBust: true,
       });
       const link = document.createElement("a");
@@ -55,7 +55,7 @@ export function useNoteSharing() {
     try {
       const dataUrl = await toPng(el, {
         pixelRatio: 2,
-        backgroundColor: "transparent",
+        backgroundColor: "#22242b",
         cacheBust: true,
       });
       const blob = await (await fetch(dataUrl)).blob();

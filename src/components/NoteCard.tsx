@@ -14,10 +14,8 @@ export const NoteCard = forwardRef<HTMLDivElement, { note: TradeNote }>(
     const images = note.images ?? [];
 
     return (
-    <div
-      ref={ref}
-      className="glass-card overflow-hidden"
-    >
+    <div ref={ref} className="surface-card overflow-hidden bg-card">
+
         <div className="edge-accent h-1 w-full" />
         <div className="p-6 sm:p-8">
           <div className="flex items-start justify-between gap-4">
