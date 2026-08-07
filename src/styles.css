@@ -169,17 +169,8 @@
   border-radius: var(--radius-lg);
 }
 
-@utility glass-card {
-  background:
-    linear-gradient(145deg, color-mix(in oklch, var(--foreground) 16%, transparent) 0%, transparent 50%),
-    color-mix(in oklch, var(--card) 15%, transparent);
-  backdrop-filter: blur(40px) saturate(170%);
-  border: 1px solid color-mix(in oklch, var(--foreground) 24%, transparent);
-  box-shadow:
-    0 1px 1px 0 color-mix(in oklch, var(--foreground) 12%, transparent) inset,
-    0 28px 70px -18px oklch(0 0 0 / 50%);
-  border-radius: var(--radius-lg);
-}
+
+
 
 @utility edge-accent {
   background-image: var(--gradient-edge);
