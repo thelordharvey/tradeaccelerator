@@ -64,7 +64,12 @@ function Index() {
   }, []);
 
   useEffect(() => {
-    if (hydrated) saveNotes(notes);
+    if (!hydrated) return;
+    if (!saveNotes(notes)) {
+      toast.error(
+        "Storage is full — older note pictures were dropped to keep your text notes saved.",
+      );
+    }
   }, [notes, hydrated]);
 
   const isEditing = useMemo(
