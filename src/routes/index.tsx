@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import type { User } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  deleteCloudNote,
+  syncLocalToCloud,
+  upsertCloudNote,
+} from "@/lib/cloud-notes";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
