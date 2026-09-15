@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import type { User } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  deleteCloudNote,
+  syncLocalToCloud,
+  upsertCloudNote,
+} from "@/lib/cloud-notes";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +47,7 @@ function Index() {
   const [notes, setNotes] = useState<TradeNote[]>([]);
   const [draft, setDraft] = useState<TradeNote>(() => emptyNote());
   const [hydrated, setHydrated] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const { cardRef, savePhoto, shareLink, sharePhoto } = useNoteSharing();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -61,7 +69,33 @@ function Index() {
   useEffect(() => {
     setNotes(loadNotes());
     setHydrated(true);
+
+    supabase.auth.getSession().then(({ data }) => {
+      setUser(data.session?.user ?? null);
+    });
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => subscription.unsubscribe();
   }, []);
+
+  // When signed in, pull cloud notes and upload any local-only ones.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    syncLocalToCloud(loadNotes(), user.id)
+      .then((merged) => {
+        if (!cancelled) setNotes(merged);
+      })
+      .catch(() => {
+        toast.error("Couldn't sync your notes — you're still working locally.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -89,7 +123,26 @@ function Index() {
         ? prev.map((n) => (n.id === draft.id ? draft : n))
         : [draft, ...prev],
     );
+    if (user) {
+      upsertCloudNote(draft, user.id).catch(() =>
+        toast.error("Saved locally — cloud sync failed."),
+      );
+    }
     setDraft(emptyNote());
+  };
+
+  const removeNote = (id: string) => {
+    setNotes((prev) => prev.filter((x) => x.id !== id));
+    if (user) {
+      deleteCloudNote(id).catch(() =>
+        toast.error("Deleted locally — cloud sync failed."),
+      );
+    }
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    toast.success("Signed out — notes stay saved on this device.");
   };
 
   return (
@@ -110,10 +163,38 @@ function Index() {
               setup actually works. Share it or keep it as a photo.
             </p>
           </div>
-          <span className="rounded-full border border-border px-4 py-1.5 text-xs text-muted-foreground">
-            {notes.length} saved {notes.length === 1 ? "note" : "notes"}
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="rounded-full border border-border px-4 py-1.5 text-xs text-muted-foreground">
+              {notes.length} saved {notes.length === 1 ? "note" : "notes"}
+            </span>
+            {user ? (
+              <div className="flex items-center gap-2">
+                <span className="max-w-40 truncate text-xs text-muted-foreground">
+                  {user.email}
+                </span>
+                <Button size="sm" variant="secondary" onClick={signOut}>
+                  Sign out
+                </Button>
+              </div>
+            ) : (
+              <Link to="/auth">
+                <Button size="sm" variant="secondary">
+                  Sign in to sync
+                </Button>
+              </Link>
+            )}
+          </div>
         </header>
+
+        {!user && (
+          <p className="mb-8 rounded-md border border-border bg-secondary/40 px-4 py-3 text-sm text-muted-foreground">
+            Notes are saved on this device only.{" "}
+            <Link to="/auth" className="text-primary hover:underline">
+              Create a free account
+            </Link>{" "}
+            to back them up and see them on any device.
+          </p>
+        )}
 
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]">
           <section className="surface-card p-6 sm:p-8">
@@ -256,9 +337,7 @@ function Index() {
                       <Button
                         size="sm"
                         variant="ghost"
-                        onClick={() =>
-                          setNotes((prev) => prev.filter((x) => x.id !== n.id))
-                        }
+                        onClick={() => removeNote(n.id)}
                       >
                         Delete
                       </Button>
