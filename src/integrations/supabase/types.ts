@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      note_trade_links: {
+        Row: {
+          created_at: string
+          note_id: string
+          trade_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          note_id: string
+          trade_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          note_id?: string
+          trade_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_trade_links_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "note_trade_links_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notes: {
         Row: {
           bad: string
@@ -53,6 +89,140 @@ export type Database = {
           updated_at?: string
           user_id?: string
           works?: string
+        }
+        Relationships: []
+      }
+      trades: {
+        Row: {
+          asset_class: string
+          close_price: number | null
+          closed_at: string | null
+          commission: number
+          created_at: string
+          external_trade_id: string
+          id: string
+          open_price: number | null
+          opened_at: string
+          position_id: string | null
+          profit: number
+          raw_data: Json
+          side: string
+          status: string
+          stop_loss: number | null
+          swap: number
+          symbol: string
+          take_profit: number | null
+          trading_account_id: string
+          updated_at: string
+          user_id: string
+          volume: number
+        }
+        Insert: {
+          asset_class?: string
+          close_price?: number | null
+          closed_at?: string | null
+          commission?: number
+          created_at?: string
+          external_trade_id: string
+          id?: string
+          open_price?: number | null
+          opened_at: string
+          position_id?: string | null
+          profit?: number
+          raw_data?: Json
+          side: string
+          status: string
+          stop_loss?: number | null
+          swap?: number
+          symbol: string
+          take_profit?: number | null
+          trading_account_id: string
+          updated_at?: string
+          user_id: string
+          volume?: number
+        }
+        Update: {
+          asset_class?: string
+          close_price?: number | null
+          closed_at?: string | null
+          commission?: number
+          created_at?: string
+          external_trade_id?: string
+          id?: string
+          open_price?: number | null
+          opened_at?: string
+          position_id?: string | null
+          profit?: number
+          raw_data?: Json
+          side?: string
+          status?: string
+          stop_loss?: number | null
+          swap?: number
+          symbol?: string
+          take_profit?: number | null
+          trading_account_id?: string
+          updated_at?: string
+          user_id?: string
+          volume?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trades_trading_account_id_fkey"
+            columns: ["trading_account_id"]
+            isOneToOne: false
+            referencedRelation: "trading_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trading_accounts: {
+        Row: {
+          account_name: string
+          created_at: string
+          currency: string
+          external_account_id: string
+          id: string
+          last_error: string | null
+          last_synced_at: string | null
+          login: string
+          platform: string
+          provider: string
+          server_name: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_name?: string
+          created_at?: string
+          currency?: string
+          external_account_id: string
+          id?: string
+          last_error?: string | null
+          last_synced_at?: string | null
+          login?: string
+          platform: string
+          provider?: string
+          server_name?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_name?: string
+          created_at?: string
+          currency?: string
+          external_account_id?: string
+          id?: string
+          last_error?: string | null
+          last_synced_at?: string | null
+          login?: string
+          platform?: string
+          provider?: string
+          server_name?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
