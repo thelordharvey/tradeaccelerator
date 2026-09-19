@@ -23,6 +23,8 @@ export const Route = createFileRoute("/shared")({
         property: "og:description",
         content: "Someone shared a trading note with you on Edge Log.",
       },
+      { property: "og:type", content: "article" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: SharedNote,
