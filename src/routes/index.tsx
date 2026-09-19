@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { NoteCard } from "@/components/NoteCard";
+import { JournalDashboard } from "@/components/JournalDashboard";
 import { ShareActions, useNoteSharing } from "@/components/note-sharing";
 import {
   FIELDS,
@@ -38,6 +39,8 @@ export const Route = createFileRoute("/")({
         content:
           "Write down the trades you take, what you did badly, what you can do better, and what works in which conditions. Share notes or save them as photos.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Index,
@@ -48,6 +51,7 @@ function Index() {
   const [draft, setDraft] = useState<TradeNote>(() => emptyNote());
   const [hydrated, setHydrated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [view, setView] = useState<"journal" | "notes">("journal");
   const { cardRef, savePhoto, shareLink, sharePhoto } = useNoteSharing();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -146,17 +150,30 @@ function Index() {
   };
 
   return (
-    <main className="min-h-screen px-5 py-10 sm:px-8 lg:py-16">
+    <main className="min-h-screen px-4 pb-12 sm:px-7">
       <Toaster position="top-center" />
-      <div className="mx-auto w-full max-w-6xl">
+      <div className="mx-auto w-full max-w-7xl">
+        <nav className="mb-7 flex h-18 items-center justify-between border-b border-border">
+          <button type="button" onClick={() => setView("journal")} className="font-display text-sm font-bold uppercase text-foreground">
+            TRADE<span className="text-primary">ACCELERATOR</span>
+          </button>
+          <div className="flex items-center gap-1 rounded-md border border-border bg-secondary/30 p-1">
+            <Button size="sm" variant={view === "journal" ? "secondary" : "ghost"} onClick={() => setView("journal")}>Journal</Button>
+            <Button size="sm" variant={view === "notes" ? "secondary" : "ghost"} onClick={() => setView("notes")}>Notes</Button>
+          </div>
+        </nav>
+
+        {view === "journal" ? (
+          <JournalDashboard user={user} onOpenNotes={() => setView("notes")} />
+        ) : (
+        <>
         <header className="mb-10 flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
               Edge Log
             </p>
             <h1 className="mt-2 text-4xl font-semibold sm:text-5xl">
-              <span className="text-gradient">Trading notes</span> that
-              compound.
+              <span className="text-gradient">Trading notes</span> that compound.
             </h1>
             <p className="mt-3 max-w-xl text-sm text-muted-foreground">
               Log the trade, the mistake, the fix, and the conditions where a
@@ -347,6 +364,8 @@ function Index() {
               ))}
             </div>
           </section>
+        )}
+        </>
         )}
       </div>
     </main>

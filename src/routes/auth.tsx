@@ -14,6 +14,10 @@ export const Route = createFileRoute("/auth")({
         content:
           "Sign in to Trade Accelerator to keep your trading notes saved to your account and synced across devices.",
       },
+      { property: "og:title", content: "Sign in — Trade Accelerator" },
+      { property: "og:description", content: "Sign in to sync your private trading journal and notes across devices." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: AuthPage,
@@ -62,7 +66,7 @@ function AuthPage() {
     <main className="flex min-h-screen items-center justify-center px-5 py-10">
       <div className="surface-card w-full max-w-sm p-8">
         <p className="text-xs uppercase tracking-[0.35em] text-muted-foreground">
-          Edge Log
+           Trade Accelerator
         </p>
         <h1 className="mt-2 text-3xl font-semibold">
           {mode === "signin" ? "Welcome back" : "Create your account"}

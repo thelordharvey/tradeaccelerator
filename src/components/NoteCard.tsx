@@ -16,7 +16,7 @@ export const NoteCard = forwardRef<HTMLDivElement, { note: TradeNote }>(
     return (
     <div ref={ref} className="surface-card overflow-hidden bg-card">
 
-        <div className="edge-accent h-1 w-full" />
+        <div className="edge-accent h-0.5 w-full" />
         <div className="p-6 sm:p-8">
           <div className="flex items-start justify-between gap-4">
             <div>
