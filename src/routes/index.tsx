@@ -27,13 +27,13 @@ import { toast } from "sonner";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Trade Accelerator" },
+      { title: "Trading Journal & Notes — Trade Accelerator" },
       {
         name: "description",
         content:
           "Write down the trades you take, what you did badly, what you can do better, and what works in which conditions. Share notes or save them as photos.",
       },
-      { property: "og:title", content: "Trade Accelerator" },
+      { property: "og:title", content: "Trading Journal & Notes — Trade Accelerator" },
       {
         property: "og:description",
         content:

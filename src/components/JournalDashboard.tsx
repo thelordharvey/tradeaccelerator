@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import type { User } from "@supabase/supabase-js";
@@ -30,6 +30,7 @@ export function JournalDashboard({ user, onOpenNotes }: { user: User | null; onO
   const [dialogOpen, setDialogOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [bridgeReady, setBridgeReady] = useState<boolean | null>(null);
+  const autoSyncedAccounts = useRef(new Set<string>());
   const [form, setForm] = useState({ name: "Primary account", login: "", password: "", server: "", platform: "mt5" as "mt4" | "mt5" });
   const getStatus = useServerFn(getBrokerBridgeStatus);
   const connect = useServerFn(connectMetaTrader);
@@ -54,6 +55,25 @@ export function JournalDashboard({ user, onOpenNotes }: { user: User | null; onO
   useEffect(() => {
     loadJournal().catch(() => toast.error("Couldn't load the trading journal."));
   }, [user]);
+
+  useEffect(() => {
+    if (!user || !bridgeReady) return;
+    const active = accounts.filter((account) => account.status !== "disconnected");
+    const refresh = async () => {
+      for (const account of active) {
+        try {
+          await sync({ data: { accountId: account.id } });
+          autoSyncedAccounts.current.add(account.id);
+        } catch {
+          // The account card shows the failed state after the next refresh.
+        }
+      }
+      if (active.length > 0) await loadJournal();
+    };
+    if (active.some((account) => !autoSyncedAccounts.current.has(account.id))) void refresh();
+    const timer = window.setInterval(() => void refresh(), 300_000);
+    return () => window.clearInterval(timer);
+  }, [accounts, bridgeReady, sync, user]);
 
   const shownTrades = trades.length > 0 ? trades : demoTrades;
   const isDemo = trades.length === 0;
