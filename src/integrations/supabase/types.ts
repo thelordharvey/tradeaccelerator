@@ -183,7 +183,6 @@ export type Database = {
           external_account_id: string
           id: string
           last_error: string | null
-          region: string | null
           last_synced_at: string | null
           login: string
           platform: string
@@ -200,7 +199,6 @@ export type Database = {
           external_account_id: string
           id?: string
           last_error?: string | null
-          region?: string | null
           last_synced_at?: string | null
           login?: string
           platform: string
@@ -217,7 +215,6 @@ export type Database = {
           external_account_id?: string
           id?: string
           last_error?: string | null
-          region?: string | null
           last_synced_at?: string | null
           login?: string
           platform?: string
