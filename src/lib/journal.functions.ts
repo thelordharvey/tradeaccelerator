@@ -70,7 +70,7 @@ export const connectMetaTrader = createServerFn({ method: "POST" })
         server: data.server,
         platform: data.platform,
         magic: 0,
-        type: "cloud-g2",
+        type: "cloud-g1",
         reliability: "regular",
       }),
     });
