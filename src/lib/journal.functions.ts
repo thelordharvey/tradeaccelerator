@@ -35,6 +35,7 @@ const clientUrl = (region: string) => `https://mt-client-api-v1.${region}.agiliu
 // both are true, otherwise the API returns "account is not connected".
 // https://metaapi.cloud/docs/provisioning/models/tradingAccount/
 type MetatraderAccountDto = {
+  id?: string;
   _id?: string;
   region?: string;
   state?: "CREATED" | "DEPLOYING" | "DEPLOYED" | "DEPLOY_FAILED" | "UNDEPLOYING" | "UNDEPLOYED" | "UNDEPLOY_FAILED" | "DELETING" | "DELETE_FAILED" | "REDEPLOY_FAILED";
@@ -105,7 +106,7 @@ function sleep(ms: number) {
 // 404 until the account has actually landed on that region's host) until the
 // account is deployed and the terminal is connected to the broker, or a
 // terminal failure/timeout is reached.
-async function waitForConnection(token: string, accountId: string, timeoutMs = 90_000) {
+async function waitForConnection(token: string, accountId: string, timeoutMs = 18_000) {
   const start = Date.now();
   let lastAccount: MetatraderAccountDto | null = null;
   while (Date.now() - start < timeoutMs) {
@@ -150,18 +151,17 @@ export const connectMetaTrader = createServerFn({ method: "POST" })
         server: data.server,
         platform: data.platform,
         magic: 0,
-        // cloud-g2 is MetaApi's recommended default: faster, cheaper, and what
-        // /regions and most documented examples assume.
-        // https://metaapi.cloud/docs/provisioning/models/tradingAccount/
-        type: "cloud-g2",
+        // cloud-g1 works on the standard MetaApi tier. cloud-g2 requires a
+        // higher paid tier and is rejected when that tier is unavailable.
+        type: "cloud-g1",
         reliability: "regular",
-        region: DEFAULT_REGION,
       }),
     });
     const body = await response.text();
     if (!response.ok) throw new Error(providerError(response.status, body));
     const created = JSON.parse(body) as MetatraderAccountDto;
-    if (!created._id) throw new Error("The broker bridge did not return an account ID.");
+    const externalAccountId = created.id ?? created._id;
+    if (!externalAccountId) throw new Error("The broker bridge did not return an account ID.");
 
     // Deploy is asynchronous and may already be in progress by the time we look
     // it up again, so always trust whatever region the account actually reports
@@ -172,19 +172,18 @@ export const connectMetaTrader = createServerFn({ method: "POST" })
       .from("trading_accounts")
       .insert({
         user_id: context.userId,
-        external_account_id: created._id,
+        external_account_id: externalAccountId,
         account_name: data.name,
         login: data.login,
         server_name: data.server,
         platform: data.platform,
-        region,
         status: "deploying",
       })
       .select("id")
       .single();
     if (error) throw error;
 
-    const deploy = await fetch(`${PROVISIONING_URL}/users/current/accounts/${created._id}/deploy`, {
+    const deploy = await fetch(`${PROVISIONING_URL}/users/current/accounts/${externalAccountId}/deploy`, {
       method: "POST",
       headers: { "auth-token": token },
     });
@@ -228,11 +227,6 @@ export const retryDeployment = createServerFn({ method: "POST" })
       await context.supabase.from("trading_accounts").update({ status: "failed", last_error: message }).eq("id", account.id);
       return { ok: false as const, message };
     }
-    // Re-read the account to pick up its (possibly reassigned) region.
-    const fresh = await fetchAccount(token, account.external_account_id);
-    if (fresh.region) {
-      await context.supabase.from("trading_accounts").update({ region: fresh.region }).eq("id", account.id);
-    }
     return { ok: true as const };
   });
 
@@ -244,7 +238,7 @@ export const syncMetaTrader = createServerFn({ method: "POST" })
     if (!token) return { ok: false as const, reason: "not_configured" as const };
     const { data: account, error } = await context.supabase
       .from("trading_accounts")
-      .select("id,external_account_id,region")
+      .select("id,external_account_id")
       .eq("id", data.accountId)
       .single();
     if (error || !account) throw new Error("Trading account not found.");
@@ -263,10 +257,7 @@ export const syncMetaTrader = createServerFn({ method: "POST" })
 
     // Always use the region MetaApi actually reports for the account, not a
     // hardcoded region, and persist it if it changed (e.g. after a redeploy).
-    const region = wait.account?.region ?? account.region ?? DEFAULT_REGION;
-    if (region !== account.region) {
-      await context.supabase.from("trading_accounts").update({ region }).eq("id", account.id);
-    }
+    const region = wait.account?.region ?? DEFAULT_REGION;
 
     const end = new Date();
     const start = new Date(end);

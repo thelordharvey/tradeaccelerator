@@ -150,10 +150,10 @@ function Index() {
   };
 
   return (
-    <main className="min-h-screen px-4 pb-12 sm:px-7">
+    <main className="liquid-page min-h-screen px-4 pb-12 sm:px-7">
       <Toaster position="top-center" />
       <div className="mx-auto w-full max-w-7xl">
-        <nav className="mb-7 flex h-18 items-center justify-between border-b border-border">
+        <nav className="glass-nav mb-7 flex h-18 items-center justify-between px-4 sm:px-5">
           <button type="button" onClick={() => setView("journal")} className="font-display text-sm font-bold uppercase text-foreground">
             TRADE<span className="text-primary">ACCELERATOR</span>
           </button>

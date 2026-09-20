@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { connectMetaTrader, disconnectMetaTrader, getBrokerBridgeStatus, retryDeployment, syncMetaTrader } from "@/lib/journal.functions";
 import { toast } from "sonner";
 
-type Account = { id: string; account_name: string; login: string; server_name: string; platform: string; currency: string; status: string; last_synced_at: string | null };
+type Account = { id: string; account_name: string; login: string; server_name: string; platform: string; currency: string; status: string; last_synced_at: string | null; last_error: string | null };
 type Trade = { id: string; symbol: string; side: string; status: string; volume: number; open_price: number | null; close_price: number | null; profit: number; opened_at: string; closed_at: string | null };
 
 const demoTrades: Trade[] = [
@@ -41,7 +41,7 @@ export function JournalDashboard({ user, onOpenNotes }: { user: User | null; onO
   const loadJournal = async () => {
     if (!user) return;
     const [accountResult, tradeResult] = await Promise.all([
-      supabase.from("trading_accounts").select("id,account_name,login,server_name,platform,currency,status,last_synced_at").order("created_at", { ascending: false }),
+      supabase.from("trading_accounts").select("id,account_name,login,server_name,platform,currency,status,last_synced_at,last_error").order("created_at", { ascending: false }),
       supabase.from("trades").select("id,symbol,side,status,volume,open_price,close_price,profit,opened_at,closed_at").order("opened_at", { ascending: false }),
     ]);
     if (accountResult.error || tradeResult.error) throw accountResult.error ?? tradeResult.error;
@@ -59,7 +59,7 @@ export function JournalDashboard({ user, onOpenNotes }: { user: User | null; onO
 
   useEffect(() => {
     if (!user || !bridgeReady) return;
-    const active = accounts.filter((account) => account.status !== "disconnected");
+    const active = accounts.filter((account) => account.status === "connected" || account.status === "deploying" || account.status === "syncing");
     const refresh = async () => {
       for (const account of active) {
         try {
@@ -108,7 +108,7 @@ export function JournalDashboard({ user, onOpenNotes }: { user: User | null; onO
       }
       setDialogOpen(false);
       if (result.warning) {
-        toast.error(result.warning);
+        toast.warning(result.warning);
         await loadJournal();
         return;
       }
@@ -160,7 +160,7 @@ export function JournalDashboard({ user, onOpenNotes }: { user: User | null; onO
   };
 
   return (
-    <div className="space-y-7">
+    <div className="journal-glass-shell space-y-7 p-4 sm:p-7">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="data-label">Trading journal</p>
@@ -194,7 +194,7 @@ export function JournalDashboard({ user, onOpenNotes }: { user: User | null; onO
         </div>
       </div>
 
-      {isDemo && <div className="flex items-center justify-between gap-3 border-y border-border bg-primary/5 px-4 py-3 text-sm"><span><strong className="text-primary">Sample data</strong><span className="text-muted-foreground"> — connect MetaTrader to replace it with your live journal.</span></span></div>}
+      {isDemo && <div className="glass-strip flex items-center justify-between gap-3 px-4 py-3 text-sm"><span><strong className="text-primary">Sample data</strong><span className="text-muted-foreground"> — connect MetaTrader to replace it with your live journal.</span></span></div>}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Metric label="Net P&L" value={`${stats.pnl >= 0 ? "+" : "-"}$${Math.abs(stats.pnl).toLocaleString(undefined, { maximumFractionDigits: 2 })}`} accent />
@@ -222,8 +222,9 @@ export function JournalDashboard({ user, onOpenNotes }: { user: User | null; onO
           <section className="surface-card p-5">
             <div className="flex items-center justify-between"><p className="data-label text-primary">Active adapters</p><WalletCards className="size-4 text-muted-foreground" /></div>
             {accounts.length ? accounts.map((account) => (
-              <div key={account.id} className="mt-4 border-t border-border pt-4">
+                <div key={account.id} className="mt-4 border-t border-border pt-4">
                 <div className="flex items-start justify-between gap-2"><div><p className="text-sm font-medium">{account.account_name}</p><p className="mt-1 font-mono text-[10px] text-muted-foreground">{account.login} · {account.platform.toUpperCase()}</p></div><span className="status-dot text-[10px] uppercase text-success">{account.status}</span></div>
+                  {account.last_error && <p className="mt-3 rounded-md border border-warning/20 bg-warning/5 p-2 text-xs leading-relaxed text-warning">{account.last_error}</p>}
                 <div className="mt-3 flex gap-2">
                   <Button size="sm" variant="secondary" onClick={() => handleSync(account.id)} disabled={busy}><RefreshCw /> Sync</Button>
                   {account.status === "failed" && <Button size="sm" variant="outline" onClick={() => handleRetryDeploy(account.id)} disabled={busy}>Retry deploy</Button>}
