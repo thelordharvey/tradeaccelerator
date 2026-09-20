@@ -34,6 +34,14 @@ function providerError(status: number, body: string) {
   console.error(`MetaApi request failed [${status}]: ${body}`);
   if (status === 401 || status === 403) return "The MetaTrader connection was rejected. Check the login, investor password, and broker server.";
   if (status === 429) return "The broker bridge is busy. Wait a moment, then try again.";
+  if (status === 400) {
+    try {
+      const parsed = JSON.parse(body) as { message?: string };
+      if (parsed.message) return `The broker details were rejected: ${parsed.message}`;
+    } catch {
+      /* fall through to generic message */
+    }
+  }
   return "The broker account could not be reached right now.";
 }
 
@@ -52,7 +60,7 @@ export const connectMetaTrader = createServerFn({ method: "POST" })
       method: "POST",
       headers: {
         "auth-token": token,
-        "transaction-id": crypto.randomUUID(),
+        "transaction-id": crypto.randomUUID().replace(/-/g, ""),
         "content-type": "application/json",
       },
       body: JSON.stringify({
