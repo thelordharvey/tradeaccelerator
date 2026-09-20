@@ -52,7 +52,7 @@ export const connectMetaTrader = createServerFn({ method: "POST" })
       method: "POST",
       headers: {
         "auth-token": token,
-        "transaction-id": crypto.randomUUID(),
+        "transaction-id": crypto.randomUUID().replace(/-/g, ""),
         "content-type": "application/json",
       },
       body: JSON.stringify({
