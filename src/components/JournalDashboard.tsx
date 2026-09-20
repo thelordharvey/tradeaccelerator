@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { connectMetaTrader, disconnectMetaTrader, getBrokerBridgeStatus, syncMetaTrader } from "@/lib/journal.functions";
+import { connectMetaTrader, disconnectMetaTrader, getBrokerBridgeStatus, retryDeployment, syncMetaTrader } from "@/lib/journal.functions";
 import { toast } from "sonner";
 
 type Account = { id: string; account_name: string; login: string; server_name: string; platform: string; currency: string; status: string; last_synced_at: string | null };
@@ -36,6 +36,7 @@ export function JournalDashboard({ user, onOpenNotes }: { user: User | null; onO
   const connect = useServerFn(connectMetaTrader);
   const sync = useServerFn(syncMetaTrader);
   const disconnect = useServerFn(disconnectMetaTrader);
+  const retryDeploy = useServerFn(retryDeployment);
 
   const loadJournal = async () => {
     if (!user) return;
@@ -136,6 +137,18 @@ export function JournalDashboard({ user, onOpenNotes }: { user: User | null; onO
     } finally { setBusy(false); }
   };
 
+  const handleRetryDeploy = async (accountId: string) => {
+    setBusy(true);
+    try {
+      const result = await retryDeploy({ data: { accountId } });
+      await loadJournal();
+      if (!result.ok) return toast.error("reason" in result ? "The MetaApi token is not configured yet." : result.message);
+      toast.success("Redeployment requested. It may take a minute to reconnect.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Couldn't retry deployment.");
+    } finally { setBusy(false); }
+  };
+
   const handleDisconnect = async (accountId: string) => {
     setBusy(true);
     try {
@@ -211,7 +224,11 @@ export function JournalDashboard({ user, onOpenNotes }: { user: User | null; onO
             {accounts.length ? accounts.map((account) => (
               <div key={account.id} className="mt-4 border-t border-border pt-4">
                 <div className="flex items-start justify-between gap-2"><div><p className="text-sm font-medium">{account.account_name}</p><p className="mt-1 font-mono text-[10px] text-muted-foreground">{account.login} · {account.platform.toUpperCase()}</p></div><span className="status-dot text-[10px] uppercase text-success">{account.status}</span></div>
-                <div className="mt-3 flex gap-2"><Button size="sm" variant="secondary" onClick={() => handleSync(account.id)} disabled={busy}><RefreshCw /> Sync</Button><Button size="icon" variant="ghost" aria-label="Disconnect account" onClick={() => handleDisconnect(account.id)} disabled={busy}><Unplug /></Button></div>
+                <div className="mt-3 flex gap-2">
+                  <Button size="sm" variant="secondary" onClick={() => handleSync(account.id)} disabled={busy}><RefreshCw /> Sync</Button>
+                  {account.status === "failed" && <Button size="sm" variant="outline" onClick={() => handleRetryDeploy(account.id)} disabled={busy}>Retry deploy</Button>}
+                  <Button size="icon" variant="ghost" aria-label="Disconnect account" onClick={() => handleDisconnect(account.id)} disabled={busy}><Unplug /></Button>
+                </div>
               </div>
             )) : <p className="mt-4 text-sm text-muted-foreground">No live account connected.</p>}
           </section>
