@@ -125,7 +125,10 @@ export function JournalDashboard({ user, onOpenNotes }: { user: User | null; onO
     setBusy(true);
     try {
       const result = await sync({ data: { accountId } });
-      if (!result.ok) return toast.error("The MetaApi token is not configured yet.");
+      if (!result.ok) {
+        await loadJournal();
+        return toast.error(result.reason === "not_ready" ? result.message : "The MetaApi token is not configured yet.");
+      }
       await loadJournal();
       toast.success(`${result.imported} trades synchronized`);
     } catch (error) {

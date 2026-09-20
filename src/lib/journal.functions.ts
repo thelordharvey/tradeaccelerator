@@ -135,7 +135,7 @@ export const syncMetaTrader = createServerFn({ method: "POST" })
     if (!response.ok) {
       const message = providerError(response.status, body);
       await context.supabase.from("trading_accounts").update({ status: "failed", last_error: message }).eq("id", account.id);
-      throw new Error(message);
+      return { ok: false as const, reason: "not_ready" as const, message };
     }
     const payload = JSON.parse(body) as { deals?: MetaDeal[] } | MetaDeal[];
     const deals = Array.isArray(payload) ? payload : payload.deals ?? [];
