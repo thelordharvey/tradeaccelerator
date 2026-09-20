@@ -100,14 +100,16 @@ export const connectMetaTrader = createServerFn({ method: "POST" })
     });
     if (!deploy.ok) {
       const deployBody = await deploy.text();
+      const message = providerError(deploy.status, deployBody);
       await context.supabase
         .from("trading_accounts")
-        .update({ status: "failed", last_error: providerError(deploy.status, deployBody) })
+        .update({ status: "failed", last_error: message })
         .eq("id", account.id);
-      throw new Error(providerError(deploy.status, deployBody));
+      // The account is saved; deployment can be retried once the provider allows it.
+      return { ok: true as const, accountId: account.id, warning: message };
     }
 
-    return { ok: true as const, accountId: account.id };
+    return { ok: true as const, accountId: account.id, warning: null };
   });
 
 export const syncMetaTrader = createServerFn({ method: "POST" })

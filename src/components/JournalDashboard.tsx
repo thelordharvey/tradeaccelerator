@@ -106,6 +106,11 @@ export function JournalDashboard({ user, onOpenNotes }: { user: User | null; onO
         return;
       }
       setDialogOpen(false);
+      if (result.warning) {
+        toast.error(result.warning);
+        await loadJournal();
+        return;
+      }
       toast.success("Account connected. Starting the first import…");
       await sync({ data: { accountId: result.accountId } });
       await loadJournal();
