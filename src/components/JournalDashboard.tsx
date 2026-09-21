@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import type { User } from "@supabase/supabase-js";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Link2, RefreshCw, Search, Unplug, WalletCards } from "lucide-react";
+import { CheckCircle2, CircleAlert, Link2, LoaderCircle, RefreshCw, Search, Unplug, WalletCards } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,15 @@ import { toast } from "sonner";
 
 type Account = { id: string; account_name: string; login: string; server_name: string; platform: string; currency: string; status: string; last_synced_at: string | null; last_error: string | null };
 type Trade = { id: string; symbol: string; side: string; status: string; volume: number; open_price: number | null; close_price: number | null; profit: number; opened_at: string; closed_at: string | null };
+
+const accountStates: Record<string, { label: string; tone: string; icon: typeof CheckCircle2 }> = {
+  connected: { label: "Connected", tone: "text-success", icon: CheckCircle2 },
+  connecting: { label: "Linking", tone: "text-primary", icon: LoaderCircle },
+  deploying: { label: "Waiting for broker", tone: "text-primary", icon: LoaderCircle },
+  syncing: { label: "Importing trades", tone: "text-primary", icon: LoaderCircle },
+  failed: { label: "Action required", tone: "text-warning", icon: CircleAlert },
+  disconnected: { label: "Disconnected", tone: "text-muted-foreground", icon: Unplug },
+};
 
 const demoTrades: Trade[] = [
   { id: "d1", symbol: "XAUUSD", side: "buy", status: "closed", volume: 0.5, open_price: 2321.4, close_price: 2338.7, profit: 865, opened_at: "2026-09-10T08:30:00Z", closed_at: "2026-09-10T12:45:00Z" },
@@ -112,9 +121,12 @@ export function JournalDashboard({ user, onOpenNotes }: { user: User | null; onO
         await loadJournal();
         return;
       }
-      toast.success("Account connected. Starting the first import…");
-      await sync({ data: { accountId: result.accountId } });
+      toast.success("Account linked. Importing your trades…");
+      const syncResult = await sync({ data: { accountId: result.accountId } });
       await loadJournal();
+      if (!syncResult.ok) toast.warning(syncResult.message);
+      else toast.success(`${syncResult.imported} trades imported`);
+      setForm({ name: "Primary account", login: "", password: "", server: "", platform: "mt5" });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Couldn't connect that account.");
     } finally {
@@ -174,27 +186,39 @@ export function JournalDashboard({ user, onOpenNotes }: { user: User | null; onO
           <Button variant="ghost" onClick={onOpenNotes}>Open notes</Button>
           {user ? (
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild><Button><Link2 /> Connect MT4 / MT5</Button></DialogTrigger>
+              <DialogTrigger asChild><Button><Link2 /> Link trading account</Button></DialogTrigger>
               <DialogContent className="surface-card border-border sm:max-w-md">
                 <DialogHeader>
-                  <DialogTitle>Connect MetaTrader</DialogTitle>
-                  <DialogDescription>Use your read-only investor password when your broker supports it. Credentials go directly to MetaApi and are never saved here.</DialogDescription>
+                  <DialogTitle>Link your trading account</DialogTitle>
+                  <DialogDescription>Enter your MetaTrader details. Use your read-only investor password when available.</DialogDescription>
                 </DialogHeader>
-                {bridgeReady === false && <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm text-warning">Live connections need the MetaApi project token. The dashboard remains in sample mode until it is added.</div>}
-                <div className="grid gap-3">
-                  <Input aria-label="Account name" placeholder="Account name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
-                  <Input aria-label="MetaTrader login" placeholder="MetaTrader login" value={form.login} onChange={(e) => setForm({ ...form, login: e.target.value })} />
-                  <Input aria-label="Broker server" placeholder="Broker server, e.g. ICMarketsSC-Live" value={form.server} onChange={(e) => setForm({ ...form, server: e.target.value })} />
-                  <Select value={form.platform} onValueChange={(value: "mt4" | "mt5") => setForm({ ...form, platform: value })}>
-                    <SelectTrigger aria-label="Platform"><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="mt5">MetaTrader 5</SelectItem><SelectItem value="mt4">MetaTrader 4</SelectItem></SelectContent>
-                  </Select>
-                  <Input aria-label="Investor password" type="password" placeholder="Investor password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+                {bridgeReady === false && <div className="rounded-md border border-warning/30 bg-warning/10 p-3 text-sm text-warning">Account linking is temporarily unavailable.</div>}
+                <div className="grid gap-4">
+                  <div className="grid gap-2">
+                    <label className="text-sm font-medium">Platform</label>
+                    <Select value={form.platform} onValueChange={(value: "mt4" | "mt5") => setForm({ ...form, platform: value })}>
+                      <SelectTrigger aria-label="Platform"><SelectValue /></SelectTrigger>
+                      <SelectContent><SelectItem value="mt5">MetaTrader 5</SelectItem><SelectItem value="mt4">MetaTrader 4</SelectItem></SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2">
+                    <label htmlFor="account-name" className="text-sm font-medium">Account name</label>
+                    <Input id="account-name" placeholder="My trading account" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="grid gap-2"><label htmlFor="account-login" className="text-sm font-medium">Login</label><Input id="account-login" inputMode="numeric" placeholder="Account number" value={form.login} onChange={(e) => setForm({ ...form, login: e.target.value })} /></div>
+                    <div className="grid gap-2"><label htmlFor="broker-server" className="text-sm font-medium">Broker server</label><Input id="broker-server" placeholder="Broker-Live" value={form.server} onChange={(e) => setForm({ ...form, server: e.target.value })} /></div>
+                  </div>
+                  <div className="grid gap-2">
+                    <label htmlFor="investor-password" className="text-sm font-medium">Investor password</label>
+                    <Input id="investor-password" type="password" autoComplete="off" placeholder="Read-only password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+                    <p className="text-xs text-muted-foreground">Your password is sent securely to the connection service and is not saved in this app.</p>
+                  </div>
                 </div>
-                <DialogFooter><Button onClick={handleConnect} disabled={busy || !form.login || !form.server || !form.password}>{busy ? "Connecting…" : "Connect account"}</Button></DialogFooter>
+                <DialogFooter><Button onClick={handleConnect} disabled={busy || !form.name.trim() || !form.login.trim() || !form.server.trim() || !form.password}>{busy ? <><LoaderCircle className="animate-spin" /> Linking account…</> : <><Link2 /> Link account</>}</Button></DialogFooter>
               </DialogContent>
             </Dialog>
-          ) : <Button asChild><Link to="/auth">Sign in to connect</Link></Button>}
+          ) : <Button asChild><Link to="/auth">Sign in to link account</Link></Button>}
         </div>
       </div>
 
@@ -225,17 +249,21 @@ export function JournalDashboard({ user, onOpenNotes }: { user: User | null; onO
         <div className="space-y-4">
           <section className="surface-card p-5">
             <div className="flex items-center justify-between"><p className="data-label text-primary">Active adapters</p><WalletCards className="size-4 text-muted-foreground" /></div>
-            {accounts.length ? accounts.map((account) => (
+            {accounts.length ? accounts.map((account) => {
+              const state = accountStates[account.status] ?? accountStates.connecting;
+              const StatusIcon = state.icon;
+              return (
                 <div key={account.id} className="mt-4 border-t border-border pt-4">
-                <div className="flex items-start justify-between gap-2"><div><p className="text-sm font-medium">{account.account_name}</p><p className="mt-1 font-mono text-[10px] text-muted-foreground">{account.login} · {account.platform.toUpperCase()}</p></div><span className="status-dot text-[10px] uppercase text-success">{account.status}</span></div>
+                <div className="flex items-start justify-between gap-2"><div><p className="text-sm font-medium">{account.account_name}</p><p className="mt-1 font-mono text-[10px] text-muted-foreground">{account.login} · {account.platform.toUpperCase()}</p></div><span className={`flex items-center gap-1.5 text-[10px] uppercase ${state.tone}`}><StatusIcon className={`size-3.5 ${["connecting", "deploying", "syncing"].includes(account.status) ? "animate-spin" : ""}`} />{state.label}</span></div>
                   {account.last_error && <p className="mt-3 rounded-md border border-warning/20 bg-warning/5 p-2 text-xs leading-relaxed text-warning">{account.last_error}</p>}
                 <div className="mt-3 flex gap-2">
                   <Button size="sm" variant="secondary" onClick={() => handleSync(account.id)} disabled={busy}><RefreshCw /> Sync</Button>
-                  {account.status === "failed" && <Button size="sm" variant="outline" onClick={() => handleRetryDeploy(account.id)} disabled={busy}>Retry deploy</Button>}
+                  {account.status === "failed" && <Button size="sm" variant="outline" onClick={() => handleRetryDeploy(account.id)} disabled={busy}>Try again</Button>}
                   <Button size="icon" variant="ghost" aria-label="Disconnect account" onClick={() => handleDisconnect(account.id)} disabled={busy}><Unplug /></Button>
                 </div>
               </div>
-            )) : <p className="mt-4 text-sm text-muted-foreground">No live account connected.</p>}
+              );
+            }) : <p className="mt-4 text-sm text-muted-foreground">No trading account linked.</p>}
           </section>
           <section className="surface-card p-5">
             <p className="data-label text-primary">Asset class</p>
