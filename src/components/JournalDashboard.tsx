@@ -143,7 +143,11 @@ export function JournalDashboard({ user, onOpenNotes }: { user: User | null; onO
       const result = await retryDeploy({ data: { accountId } });
       await loadJournal();
       if (!result.ok) return toast.error("reason" in result ? "The MetaApi token is not configured yet." : result.message);
-      toast.success("Redeployment requested. It may take a minute to reconnect.");
+      if (!result.ready) return toast.warning(result.message);
+      const syncResult = await sync({ data: { accountId } });
+      await loadJournal();
+      if (!syncResult.ok) return toast.warning(syncResult.message);
+      toast.success(`Account reconnected · ${syncResult.imported} trades synchronized`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Couldn't retry deployment.");
     } finally { setBusy(false); }

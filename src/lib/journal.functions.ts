@@ -227,7 +227,23 @@ export const retryDeployment = createServerFn({ method: "POST" })
       await context.supabase.from("trading_accounts").update({ status: "failed", last_error: message }).eq("id", account.id);
       return { ok: false as const, message };
     }
-    return { ok: true as const };
+
+    const wait = await waitForConnection(token, account.external_account_id);
+    if (!wait.ready) {
+      const message = wait.reason ?? "The account is still starting up.";
+      const terminalFailure = wait.account?.state === "DEPLOY_FAILED" || wait.account?.state === "REDEPLOY_FAILED";
+      await context.supabase
+        .from("trading_accounts")
+        .update({ status: terminalFailure ? "failed" : "deploying", last_error: message })
+        .eq("id", account.id);
+      return { ok: true as const, ready: false as const, message };
+    }
+
+    await context.supabase
+      .from("trading_accounts")
+      .update({ status: "connected", last_error: null })
+      .eq("id", account.id);
+    return { ok: true as const, ready: true as const, message: null };
   });
 
 export const syncMetaTrader = createServerFn({ method: "POST" })
